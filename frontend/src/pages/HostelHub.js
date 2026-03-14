@@ -124,43 +124,73 @@ export default function HostelHub() {
           <div className="alert alert-error">{error}</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 22 }}>
-            {hostels.map(h => (
-              <div key={h._id} className="card" style={{ overflow: "hidden" }}>
-                <div style={{ position: "relative" }}>
-                  <ImageGallery images={h.images} image={h.image} name={h.name} />
-                  <span className="pill pill-maroon" style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}>
-                    {genderLabel(h.gender)}
-                  </span>
-                </div>
-                <div style={{ padding: 20 }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.2rem", fontWeight: 700, marginBottom: 7 }}>{h.name}</div>
-                  <div style={{ display: "flex", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
-                    {h.distance_from_college && <span style={{ fontSize: "0.77rem", color: "var(--muted)" }}>📍 {h.distance_from_college} from college</span>}
-                    {h.location && <span style={{ fontSize: "0.77rem", color: "var(--muted)" }}>🏘 {h.location}</span>}
+            {hostels.map(h => {
+              const isFull = h.vacantRooms === 0;
+              return (
+                <div key={h._id} className="card" style={{ overflow: "hidden", opacity: isFull ? 0.75 : 1 }}>
+                  <div style={{ position: "relative" }}>
+                    <ImageGallery images={h.images} image={h.image} name={h.name} />
+                    <span className="pill pill-maroon" style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}>
+                      {genderLabel(h.gender)}
+                    </span>
+                    {/* Full overlay badge */}
+                    {isFull && (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ background: "#dc2626", color: "#fff", fontFamily: "'Space Mono',monospace", fontSize: "0.75rem", padding: "6px 16px", borderRadius: 20, letterSpacing: "0.1em" }}>
+                          FULLY BOOKED
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <Stars n={h.rating} />
-                  {h.facilities?.length > 0 && (
-                    <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {h.facilities.slice(0, 3).map(f => (
-                        <span key={f} className="pill pill-gold" style={{ fontSize: "0.68rem" }}>{f}</span>
-                      ))}
+
+                  <div style={{ padding: 20 }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.2rem", fontWeight: 700, marginBottom: 7 }}>{h.name}</div>
+
+                    <div style={{ display: "flex", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
+                      {h.distance_from_college && (
+                        <span style={{ fontSize: "0.77rem", color: "var(--muted)" }}>📍 {h.distance_from_college} from college</span>
+                      )}
+                      {h.location && (
+                        <span style={{ fontSize: "0.77rem", color: "var(--muted)" }}>🏘 {h.location}</span>
+                      )}
+                      {/* Vacant rooms */}
+                      <span style={{ fontSize: "0.77rem", color: isFull ? "#dc2626" : "#166534", fontWeight: 600 }}>
+                        🛏 {isFull ? "No vacancies" : `${h.vacantRooms} room${h.vacantRooms === 1 ? "" : "s"} available`}
+                      </span>
                     </div>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, borderTop: "1px solid var(--border)", marginTop: 12 }}>
-                    <div style={{ fontFamily: "'Space Mono',monospace", color: "var(--maroon)", fontSize: "1rem" }}>
-                      ₹{(h.price ?? h.rent ?? 0).toLocaleString()}
-                      <span style={{ fontSize: "0.67rem", color: "var(--muted)", fontFamily: "'DM Sans',sans-serif" }}> / mo</span>
+
+                    <Stars n={h.rating} />
+
+                    {h.facilities?.length > 0 && (
+                      <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {h.facilities.slice(0, 3).map(f => (
+                          <span key={f} className="pill pill-gold" style={{ fontSize: "0.68rem" }}>{f}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, borderTop: "1px solid var(--border)", marginTop: 12 }}>
+                      <div style={{ fontFamily: "'Space Mono',monospace", color: "var(--maroon)", fontSize: "1rem" }}>
+                        ₹{(h.price ?? h.rent ?? 0).toLocaleString()}
+                        <span style={{ fontSize: "0.67rem", color: "var(--muted)", fontFamily: "'DM Sans',sans-serif" }}> / mo</span>
+                      </div>
+                      <button
+                        className="btn btn-maroon"
+                        style={{ padding: "7px 16px", fontSize: "0.8rem", opacity: isFull ? 0.5 : 1, cursor: isFull ? "not-allowed" : "pointer" }}
+                        disabled={isFull}
+                        onClick={() => {
+                          if (!firebaseUser) { alert("Please login to book."); return; }
+                          if (isFull) return;
+                          setBooking(h); setBookStatus(null);
+                          setBookForm({ moveInDate: "", studentPhone: "", message: "" });
+                        }}>
+                        {isFull ? "Fully Booked" : "Book Now"}
+                      </button>
                     </div>
-                    <button className="btn btn-maroon" style={{ padding: "7px 16px", fontSize: "0.8rem" }}
-                      onClick={() => {
-                        if (!firebaseUser) { alert("Please login to book."); return; }
-                        setBooking(h); setBookStatus(null);
-                        setBookForm({ moveInDate: "", studentPhone: "", message: "" });
-                      }}>Book Now</button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {hostels.length === 0 && (
               <p style={{ color: "var(--muted)", gridColumn: "1/-1" }}>No hostels found matching your search.</p>
             )}
@@ -168,25 +198,40 @@ export default function HostelHub() {
         )}
       </div>
 
+      {/* Booking Modal */}
       {booking && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(26,18,9,0.68)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={e => e.target === e.currentTarget && setBooking(null)}>
           <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 18, padding: 36, width: 380, maxWidth: "94vw", boxShadow: "0 40px 100px rgba(0,0,0,0.2)" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.6rem", fontWeight: 700, marginBottom: 4 }}>Book {booking.name}</div>
-            <div style={{ color: "var(--muted)", fontSize: "0.8rem", marginBottom: 22 }}>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "1.6rem", fontWeight: 700, marginBottom: 4 }}>
+              Book {booking.name}
+            </div>
+            <div style={{ color: "var(--muted)", fontSize: "0.8rem", marginBottom: 4 }}>
               ₹{(booking.price ?? booking.rent ?? 0).toLocaleString()}/month
               {booking.distance_from_college && ` · ${booking.distance_from_college} from college`}
             </div>
-            {bookStatus && <div className={`alert ${bookStatus.type === "success" ? "alert-success" : "alert-error"}`}>{bookStatus.msg}</div>}
+            {/* Vacancy info in modal */}
+            <div style={{ marginBottom: 18, fontSize: "0.78rem", color: "#166534", fontWeight: 600 }}>
+              🛏 {booking.vacantRooms} room{booking.vacantRooms === 1 ? "" : "s"} available
+              {booking.totalRooms > 0 && ` of ${booking.totalRooms} total`}
+            </div>
+
+            {bookStatus && (
+              <div className={`alert ${bookStatus.type === "success" ? "alert-success" : "alert-error"}`}>{bookStatus.msg}</div>
+            )}
+
             <label style={{ fontSize: "0.78rem", color: "var(--muted)", display: "block", marginBottom: 5 }}>Move-in Date *</label>
             <input className="input" type="date" style={{ marginBottom: 10 }} value={bookForm.moveInDate}
               onChange={e => setBookForm(f => ({ ...f, moveInDate: e.target.value }))} />
+
             <label style={{ fontSize: "0.78rem", color: "var(--muted)", display: "block", marginBottom: 5 }}>Phone Number</label>
             <input className="input" type="tel" placeholder="9876543210" style={{ marginBottom: 10 }} value={bookForm.studentPhone}
               onChange={e => setBookForm(f => ({ ...f, studentPhone: e.target.value }))} />
+
             <label style={{ fontSize: "0.78rem", color: "var(--muted)", display: "block", marginBottom: 5 }}>Message (optional)</label>
             <textarea className="input" rows={3} placeholder="Any special requirements?" style={{ resize: "vertical", marginBottom: 16 }}
               value={bookForm.message} onChange={e => setBookForm(f => ({ ...f, message: e.target.value }))} />
+
             <div style={{ display: "flex", gap: 9 }}>
               <button className="btn btn-maroon" style={{ flex: 1 }} onClick={handleBook} disabled={bookBusy}>
                 {bookBusy ? "Submitting…" : "Confirm Booking"}
